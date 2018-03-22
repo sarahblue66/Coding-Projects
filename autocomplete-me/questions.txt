@@ -1,0 +1,39 @@
+## Tianyi Lan ##
+## Challenge 1: autocomplete-me ##
+
+1. After running the time.py file, it takes about 0.001s for my matcher to return matches for “The” with the file movies.txt. It takes about 17s to load the data and build the trie. 
+
+2. The execution time for loading the data increases as input size increases while the execution time for the matcher stays about the same (which is very short and less than 1 second). The plot(see plot.png) is shown after running the performanceGraph.py file which generates 30 random subsets of movies.txt with input sizes ranging from 10000 to 100000 and plots their times for both loading data and finding matches. Based on the graph, I would say that the complexity of loading the data and building the trie is about O(n) because there is approximately a linear line with positive slope, the complexity of the matcher is about O(1) as the execution time stays very short for all sample input sizes.
+
+3. The time.py returns the profile of my code. A sample based on using movies.txt with searching “The” is shown below:
+
+         4858303 function calls in 19.572 seconds
+
+   Ordered by: standard name
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    2.649    2.649   19.572   19.572 <string>:1(<module>)
+      145    0.000    0.000    0.000    0.000 autocomplete_me.py:18(__lt__)
+        1    0.000    0.000    0.000    0.000 autocomplete_me.py:24(__init__)
+   229447   10.329    0.000   16.415    0.000 autocomplete_me.py:27(addWord)
+        1    0.000    0.000    0.000    0.000 autocomplete_me.py:47(search)
+        1    0.352    0.352   16.922   16.922 autocomplete_me.py:60(read_terms)
+        1    0.000    0.000    0.001    0.001 autocomplete_me.py:72(autocomplete)
+  4166730    6.086    0.000    6.086    0.000 autocomplete_me.py:9(__init__)
+        1    0.000    0.000    0.000    0.000 codecs.py:259(__init__)
+        1    0.000    0.000    0.000    0.000 codecs.py:308(__init__)
+     1256    0.003    0.000    0.011    0.000 codecs.py:318(decode)
+     1256    0.008    0.000    0.008    0.000 {built-in method _codecs.utf_8_decode}
+        1    0.000    0.000    0.000    0.000 {built-in method _heapq.heapify}
+       82    0.000    0.000    0.000    0.000 {built-in method _heapq.heappop}
+      308    0.000    0.000    0.000    0.000 {built-in method _heapq.heappush}
+        1    0.000    0.000   19.572   19.572 {built-in method builtins.exec}
+      168    0.000    0.000    0.000    0.000 {built-in method builtins.len}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.next}
+        1    0.000    0.000    0.000    0.000 {built-in method io.open}
+        5    0.000    0.000    0.000    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+   229447    0.090    0.000    0.090    0.000 {method 'split' of 'str' objects}
+   229447    0.054    0.000    0.054    0.000 {method 'strip' of 'str' objects}
+
+From this output, the slowest part of my code is addWord() which takes about 10 seconds to perform 229447 functional calls. This can not be avoided because the this function is necessarily called every time a new word is added and therefore resulted in the large total time. When looking at the execution time per call, the slowest seems to be read_terms() which takes about 0.4s per functional call. This function was written, in my opinion, in the standard way and could not be improved. But of course, there could be a more efficient way to read in the terms and turn them into a trie. In general, i think my algorithm is relatively efficient.

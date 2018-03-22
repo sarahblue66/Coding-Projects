@@ -1,0 +1,114 @@
+Table 1: crime counts by crime type
+
+Section    Crime Type                                                Count
+---------  ------------------------------------------------------  -------
+2501       Criminal Homicide.                                            3
+3929       Retail Theft.                                                 9
+2701       Simple Assault.                                              12
+3701       Robbery.                                                     12
+13(a)(30)  Possession w/ Intent to Del. Controlled Substance            13
+2702       Aggravated Assault.                                          14
+3502       Burglary.                                                    14
+2709       Harassment (Non-Specific)                                    16
+13(a)(16)  Possession of Controlled Substance                           21
+3921       Theft by Unlawful Taking or Disposition.                     22
+3934       Theft from Vehicle                                           23
+3921(a)    Theft by Unlawful Taking or Disposition - Movable item       23
+3304       Criminal Mischief.                                           74
+
+
+Table2: changes in number of crimes between this week and last week by police zone
+
+  Police Zone    Changes in number of crimes
+                    (latest week - last week)
+-------------  ------------------------------
+            1                              -9
+            2                              14
+            3                             -25
+            4                               5
+            5                              -2
+            6                              -2
+
+
+Table 3: changes in number of crimes between this week and last week by neighborhood
+
+Neighborhood                Changes in number of crimes
+                               (latest week - last week)
+------------------------  ------------------------------
+Allegheny Center                                       0
+Allentown                                             -5
+Arlington                                             -4
+Arlington Heights                                      2
+Banksville                                             0
+Bedford Dwellings                                      1
+Beechview                                              2
+Beltzhoover                                            3
+Bloomfield                                            -7
+Bluff                                                 -4
+Brighton Heights                                      -4
+Brookline                                             -3
+California-Kirkbride                                  -2
+Carrick                                               -2
+Central Lawrenceville                                 -3
+Central Northside                                      9
+Central Oakland                                        1
+Chartiers City                                        -2
+Chateau                                                0
+Crafton Heights                                       -2
+Crawford-Roberts                                       6
+Duquesne Heights                                      -3
+East Allegheny                                        -3
+East Hills                                             1
+East Liberty                                          -8
+Elliott                                                1
+Esplen                                                 1
+Fineview                                              -1
+Friendship                                             1
+Garfield                                               2
+Greenfield                                            -1
+Hazelwood                                              2
+Highland Park                                         -1
+Homewood North                                         2
+Homewood South                                         6
+Homewood West                                         -1
+Knoxville                                             -2
+Larimer                                                1
+Lincoln-Lemington-Belmar                               0
+Lower Lawrenceville                                    1
+Manchester                                            -1
+Marshall-Shadeland                                     2
+Middle Hill                                            0
+Morningside                                            1
+Mount Washington                                       0
+Mt. Oliver                                             1
+New Homestead                                         -1
+North Oakland                                         -1
+North Shore                                           -2
+Northview Heights                                      1
+Oakwood                                                1
+Overbrook                                             -5
+Perry North                                           -2
+Perry South                                           -5
+Point Breeze                                          -2
+Point Breeze North                                     7
+Polish Hill                                            1
+Shadyside                                              2
+Sheraden                                               6
+South Oakland                                          6
+South Shore                                            2
+South Side Flats                                     -10
+South Side Slopes                                     -2
+Spring Garden                                          0
+Spring Hill-City View                                  0
+Squirrel Hill North                                   -3
+Squirrel Hill South                                   -5
+Stanton Heights                                        2
+Strip District                                         8
+Summer Hill                                            1
+Terrace Village                                        0
+Troy Hill                                             -2
+Upper Hill                                             2
+Upper Lawrenceville                                    2
+West End                                              -6
+West Oakland                                          -1
+Windgap                                                0

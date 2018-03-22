@@ -1,0 +1,6 @@
+[20914, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-03-10 06:18:00', '600 block Seagirt St', 'East Hills', 5]
+[20988, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-03-10 06:18:00', '600 block Seagirt St', 'East Hills', 5]
+[25281, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-04-06 23:58:00', '400 block Cathedral Ave', 'Mt. Oliver', 3]
+[25409, 'OFFENSE 2.0', '3921', 'Theft by Unlawful Taking or Disposition.', '2015-04-10 15:30:00', '500 block mt Pleasant Rd', 'Northview Heights', 1]
+[26847, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-14 17:00:00', 'W Circuit Dr & Schenley Dr', 'Squirrel Hill South', 4]
+[26846, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-14 17:10:00', '5600 block 2nd Ave', 'Hazelwood', 4]

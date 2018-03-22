@@ -1,0 +1,26 @@
+[20950, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-03-10 17:35:00', '400 block St Joseph St', 'Mt. Oliver Neighborhood', 3]changed to Mt. Oliver
+[21079, 'OFFENSE 2.0', '3921', 'Theft by Unlawful Taking or Disposition.', '2015-03-11 07:00:00', '1800 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[22061, 'OFFENSE 2.0', '2702', 'Aggravated Assault.', '2015-03-16 19:21:00', 'Croft St & Lookout St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[22323, 'OFFENSE 2.0', '2702', 'Aggravated Assault.', '2015-03-18 16:44:00', 'River Ave & Heinz St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[22595, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-03-19 13:00:00', '400 block Walde St', 'Mt. Oliver Neighborhood', 3]changed to Mt. Oliver
+[23991, 'OFFENSE 2.0', '13(a)(16)', 'Possession of Controlled Substance', '2015-03-27 17:59:00', 'Spring Garden Ave & Wicklines Ln', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[25281, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-04-06 23:58:00', '500 block Cathedral Ave', 'Mt. Oliver Neighborhood', 3]changed to Mt. Oliver
+[25281, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-04-06 23:58:00', '400 block Cathedral Ave', 'Mt. Oliver Neighborhood', 3]changed to Mt. Oliver
+[25368, 'OFFENSE 2.0', '3701', 'Robbery.', '2015-04-07 02:01:00', '300 block Lafayette Ave', 'Fineview South', 1]changed to Fineview
+[25487, 'OFFENSE 2.0', '3934', 'Theft from Vehicle', '2015-04-07 19:50:00', '300 block Denniston St', 'Shadysid', 4]changed to Shadyside
+[25606, 'OFFENSE 2.0', '3934', 'Theft from Vehicle', '2015-04-08 04:45:00', '100 block Burr St', 'Mt. Oliver Neighborhood', 3]changed to Mt. Oliver
+[25690, 'OFFENSE 2.0', '2709', 'Harassment (Non-Specific)', '2015-04-09 00:22:00', '1600 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[26028, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-04-10 19:55:00', '700 block Maytide St', 'carrickk', 3]changed to Carrick
+[26907, 'OFFENSE 2.0', '13(a)(16)', 'Possession of Controlled Substance', '2015-04-15 08:08:00', '1200 block Troy Hill Rd', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[26929, 'OFFENSE 2.0', '2709', 'Harassment (Non-Specific)', '2015-04-15 16:58:00', '1800 block Elbow St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27049, 'OFFENSE 2.0', '3934', 'Theft from Vehicle', '2015-04-16 11:30:00', '2000 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27050, 'OFFENSE 2.0', '3921', 'Theft by Unlawful Taking or Disposition.', '2015-04-16 11:30:00', '2000 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27236, 'OFFENSE 2.0', '3921', 'Theft by Unlawful Taking or Disposition.', '2015-04-17 19:50:00', '2100 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27624, 'OFFENSE 2.0', '2701', 'Simple Assault.', '2015-04-19 09:31:00', '2100 block Straubs Ln', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27625, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-19 09:31:00', '2100 block Straubs Ln', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27953, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-21 02:45:00', '1100 block Brabec St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[27977, 'OFFENSE 2.0', '2709', 'Harassment (Non-Specific)', '2015-04-21 18:19:00', '1800 block Lowrie St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[28399, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-24 18:00:00', '800 block Vinial St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[28653, 'OFFENSE 2.0', '3921', 'Theft by Unlawful Taking or Disposition.', '2015-04-25 12:00:00', '300 block Brownsville Rd', 'Mt. Oliver Boro', 3]changed to Mt. Oliver
+[28549, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-25 14:00:00', '800 block Vinial St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
+[28550, 'OFFENSE 2.0', '3304', 'Criminal Mischief.', '2015-04-25 14:00:00', '800 block Vinial St', 'Troy Hill-Herrs Island', 1]changed to Troy Hill
