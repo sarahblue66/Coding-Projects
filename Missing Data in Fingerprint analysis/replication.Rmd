@@ -1,0 +1,794 @@
+---
+title: "Fingerprint Analysis Replication"
+author: "Tianyi Lan, Jacqueline Liu"
+output: 
+  pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                      comment = NA, fig.height = 4, fig.align = "center")
+library(tidyverse)
+library(readxl)
+library(xtable)
+library(gridExtra)
+library(BayesFactor)
+
+theme_update(text = element_text(family = "mono"), #, size = 18),
+             plot.title = element_text(hjust = 0.5)
+             )
+options(digits = 2, xtable.comment = FALSE)
+```
+
+
+```{r data}
+# reading the data
+surveys <- read_excel('data/320004_Final_Allstarts_Excel_020117.xlsx')
+surveys <- surveys %>% 
+                mutate(status = ifelse(status == "Quotafull",
+                                      "quotafull",
+                                      status))
+
+# Converting percentages into 7 point scale (1 - 7)
+pct_to_7s <- function(x) {
+  conversion <- ceiling((x) * 7 / 100)
+  return(ifelse(conversion == 0, 1, conversion))
+}
+
+# Identifying user engagement via comments
+is_disengaged <- function(comment) {
+  if (is.na(comment)) {
+    return(NA)
+  }
+  dispattern <- "(^no|n/?a|nothing)"
+  return(length(grep(dispattern, trimws(comment))) > 0 & nchar(comment) < 15)
+}
+
+# Mutating the data
+surveys <- surveys %>% 
+                  mutate(q6_1 = pct_to_7s(q6),
+                         q8_1 = pct_to_7s(q8),
+                         condition = ifelse(hqcondition > 6,
+                                            hqcondition - 6,
+                                            hqcondition)) %>%
+                  rowwise() %>%
+                  mutate(score = mean(c(q3_1, q4_1, q5_1, q6_1, q7_1, q8_1)),
+                         certainty = mean(c(q11_1, q12_1)),
+                         engaged = !is_disengaged(tolower(q22)),
+                         engagement = ifelse(is.na(q22), 0, nchar(q22)))
+
+responses <- surveys %>% filter(status == "complete")
+```
+
+## Filtering to get same "complete" responses
+
+```{r identification}
+valid <- surveys %>% filter(qs1 == 1,    # U.S. citizenship
+                            qs2 == 2,    # No felony record
+                            !is.na(qs3), # Entered an age
+                            q1 == 3,     # Reading question
+                            q2 == 3     # Reading question 
+                            )
+
+valid <- na.omit(valid %>% dplyr::select(-c(q15_6_other, # If `other` ethniciy
+                                     q22,          # Optional comments
+                                     engaged
+                                     )))
+outlier <- valid %>% filter(status == "screened")
+
+```
+
+After selecting only those eligible to serve as a juror and responded correctly to the reading comprehension questions, the sample is equivalent to the 600 used in the study along with 4 "quotafull" and 1 "screened" participant. I looked through the screened participant's responses and can find nothing wrong with his answers - in fact it looks pretty consistent (e.g. graduate degree = liberal)
+
+## Replicating Jay's Analysis
+
+First thing is to extract the same responses that he did his final analysis on:
+
+```{r filter_data}
+knitr::kable(summary(factor(surveys$status)),
+             col.names = c("count"))
+```
+
+Next we calculate his "aggregated score" first, described in footnote 28. 
+
+```{r aggregate_score, eval = FALSE}
+# Converting percentages into 7 point scale (1 - 7)
+pct_to_7s <- function(x) {
+  conversion <- ceiling((x) * 7 / 100)
+  return(ifelse(conversion == 0, 1, conversion))
+}
+
+responses <- responses %>% 
+                  mutate(q6_1 = pct_to_7s(q6),
+                         q8_1 = pct_to_7s(q8)) %>%
+                  rowwise() %>%
+                  mutate(score = mean(c(q3_1, q4_1, q5_1, q6_1, q7_1, q8_1)),
+                         certainty = mean(c(q11_1, q12_1)))
+```
+
+Now we can ascertain whether or not cross-examination influences the perceived strength of evidence.
+
+```{r cross-examination, results = 'asis'}
+# responses %>% group_by(hqcondition) %>% summarize(count = n())
+# all have 50 responses
+
+compare_crossexam <- function(data) {
+  test_results <- t.test(score ~ hqcondition, data = data)
+  return(data.frame(estimate = test_results$estimate[2] - test_results$estimate[1],
+                    pvalue = test_results$p.value,
+                    lower = test_results$conf.int[1],
+                    upper = test_results$conf.int[2]))
+}
+
+all_tests <- responses %>%
+                group_by(conditions = hqcondition %% 6) %>%
+                do(compare_crossexam(.))
+all_tests[['conditions']][1] <- 6
+all_tests <- arrange(all_tests, conditions)
+all_tests[['conditions']] <- paste(all_tests[['conditions']],
+                                  all_tests[['conditions']] + 6,
+                                  sep = ' vs. ')
+print(xtable(all_tests), include.rownames = FALSE)
+
+# allergic to t.tests, no p-value
+# side-by-side boxplots, visual examination
+```
+
+The 5th and 11th condition pairing is the only in which the mean score of the cross-examination group is lower than that of the other group. Because our alternative hypothesis is one-sided (the confidence of the cross-examination group is lower than that of the baseline group) and the p-values are all insignificant, we can conclude that cross-examination does not influence the confidence jurors assign to fingerprint evidence. 
+
+
+Aggregating the data across cross-examination groups, we created the same boxplot from the original paper.
+
+```{r boxplot}
+# responses <- responses %>% mutate(condition = ifelse(hqcondition > 6,
+#                                                      hqcondition - 6,
+#                                                      hqcondition))
+
+# True version
+ggplot(data = responses, aes(y = score, x = factor(condition))) +
+  geom_boxplot() + labs(x = "Condition",
+                        y = "Perceived Strength of Evidence",
+                        title = "Perceived Strength of Evidence by Condition")
+
+# Reordered version
+ggplot(data = responses, aes(y = score,
+                             x = factor(condition,
+                                        levels = c(1, 6, 2, 3, 4, 5)))) +
+  geom_boxplot() + labs(x = "Condition",
+                        y = "Perceived Strength of Evidence",
+                        title = "Perceived Strength of Evidence by Condition")
+
+# Examiner Certainty Q9
+ggplot(data = responses, aes(y = q11_1,
+                             x = factor(condition,
+                                        levels = c(1, 6, 2, 3, 4, 5)))) +
+  geom_boxplot() + labs(x = "Condition",
+                        y = "Perceived Examiner Certainty",
+                        title = "Perceived Examiner Certainty (Q11) by Condition")
+```
+
+Hmmm the trend in our boxplots looks very different from his... Did I calculate the aggregated score wrong?
+
+## Identifying "Incomplete" Responses
+
+```{r eligible}
+screened <- surveys %>% filter(status != "complete" & status != "quotafull")
+eligible <- surveys %>% filter(qs1 == 1,    # U.S. citizenship
+                               qs2 == 2,    # No felony record
+                               !is.na(qs3), # Entered an age
+                               q1 == 3,     # Reading question
+                               q2 == 3      # Reading question 
+                               )
+
+knitr::kable(summary(factor(eligible$status)),
+             col.names = c("count"))
+
+# No NA values in the `quotafull` or `screened` category
+# Complete responses passes our screening process
+incomplete <- eligible %>% filter(is.na(status))
+```
+
+We have `r nrow(incomplete)` participants who would have qualified for participation in the survey. Of the `r nrow(screened)` who were not considered for the study, `r nrow(screened %>% filter(qs1 == 1, qs2 == 2, !is.na(qs3)))` would qualify as jurors, among which `r nrow(screened %>% filter(qs1 == 1, qs2 == 2, !is.na(qs3), q1 == 3))` got the first reading comprehension question correct. Only `r nrow(incomplete)` juror-eligible participant got both questions correct.
+
+```{r incomplete}
+knitr::kable(apply(incomplete %>%
+                        select(-c(respid, # Mostly same as response id, two pairs swapped
+                                  pid,
+                                  psid,
+                                  loi,    # Length of interview = start & end
+                                  q15_6_other, # "other" ethnicity
+                                  q22,          # optional comments
+                                  engaged
+                               )),
+                   2,
+                   function(x) return(sum(is.na(x)))) / nrow(incomplete),
+             col.names = c("Proportion NA"))
+```
+
+
+```{r invscomplete, fig.cap = "Distribution of Condition 3 Participants with Incompletes"}
+knitr::kable(data.frame(t(incomplete[, -c(1:15)])))
+
+# Strength of Evidence 
+theme_update(text = element_text(size = 18),
+             plot.title = element_text(hjust = 0.5)
+             )
+
+evdnc_plot <- ggplot(data = responses) + 
+                    geom_histogram(aes(x = score)) + 
+                    geom_vline(xintercept = 7, size = 2, 
+                               linetype = "dashed", color = "#0da100") +
+                    geom_vline(xintercept = 3.333, size = 2,
+                               linetype = "dashed", color = "#cc002b") +
+                    geom_vline(xintercept = 4, size = 2,
+                               linetype = "dashed", color = "#ffcc00") + 
+                    labs(x = "Strength of Evidence",
+                         title = "Distribution of Strength of Evidence:\n Incompletes versus Completes") + 
+                    theme_bw() + 
+                    theme(text = element_text(size = 18),
+                                 plot.title = element_text(face = "bold", hjust = 0.5),
+                         panel.background = element_rect(colour = NA),
+                         plot.background = element_rect(colour = NA),
+                         panel.border = element_rect(colour = NA),
+                         axis.title.y = element_text(angle=90,vjust =2),
+                         axis.title.x = element_text(vjust = -0.2),
+                         axis.text = element_text(), 
+                         axis.line = element_line(colour="black"),
+                         axis.ticks = element_line(),
+                         panel.grid.major = element_line(colour="#f0f0f0"),
+                         panel.grid.minor = element_blank()
+                                 )
+
+cauchy_points <- data.frame(x = seq(-3, 10, by=0.1),
+                            y = dcauchy(seq(-3, 10, by=0.1),
+                                        location = mean(responses$score),
+                                        scale = sqrt(2)/2))
+
+cauchy_plot <- ggplot(data = cauchy_points, aes(x=x, y=y)) +
+                    geom_line(size = 2, color = "#cc002b") + 
+                    labs(y = "P(x)",
+                        title = "Cauchy prior",
+                         subtitle = expression(mu~"= 3.75, "~gamma~"=0.71")) + 
+                    theme_bw() + 
+                    theme(text = element_text(size = 18),
+                                 plot.title = element_text(face = "bold", hjust = 0.5),
+                                 plot.subtitle = element_text(hjust = 0.5),
+                         panel.background = element_rect(colour = NA),
+                         plot.background = element_rect(colour = NA),
+                         panel.border = element_rect(colour = NA),
+                         axis.title.y = element_text(angle=90, vjust =2),
+                         axis.title.x = element_text(vjust = -0.2),
+                         axis.text = element_text(), 
+                         axis.line = element_line(colour="black"),
+                         axis.ticks = element_line(),
+                         panel.grid.major = element_line(colour="#f0f0f0"),
+                         panel.grid.minor = element_blank()
+                        )
+
+cauchy_plot
+
+# Expert Errors
+err_plot <- ggplot(data = responses %>% filter(condition == 3)) + 
+                  geom_histogram(aes(x = q11_1)) + 
+                  geom_vline(xintercept = 1, linetype = "dashed", color = "blue") +
+                  labs(x = "Concern about Errors by Expert")
+                
+# Expert Exaggeration
+exg_plot <- ggplot(data = responses %>% filter(condition == 3)) + 
+                  geom_histogram(aes(x = q12_1)) + 
+                  geom_vline(xintercept = 1, linetype = "dashed", color = "blue") +
+                  labs(x = "Concern about Exaggeration by Expert")
+grid.arrange(evdnc_plot, err_plot, exg_plot, ncol = 2)
+```
+
+
+```{r invscomplete2, fig.cap = "Distribution of Condition 2 Participants with Incomplete"}
+# Strength of Evidence 
+evdnc_plot <- ggplot(data = responses %>% filter(condition == 2)) + 
+                    geom_histogram(aes(x = score)) + 
+                    geom_vline(xintercept = 4, linetype = "dashed", color = "green") + 
+                    labs(x = "Strength of Evidence")
+                
+# Expert Errors
+err_plot <- ggplot(data = responses %>% filter(condition == 2)) + 
+                  geom_histogram(aes(x = q11_1)) + 
+                  geom_vline(xintercept = 4, linetype = "dashed", color = "green") +
+                  labs(x = "Concern about Errors by Expert")
+                
+# Expert Exaggeration
+exg_plot <- ggplot(data = responses %>% filter(condition == 2)) + 
+                  geom_histogram(aes(x = q12_1)) + 
+                  geom_vline(xintercept = 4, linetype = "dashed", color = "green") +
+                  labs(x = "Concern about Exaggeration by Expert")
+grid.arrange(evdnc_plot, err_plot, exg_plot, ncol = 2)
+
+high <- nrow(responses %>% filter(score == 7.0))
+low <- nrow(responses %>% filter(score == 1.0))
+mid0 <- nrow(responses %>% filter(q3_1 == 3, 
+                         q4_1 == 3,
+                         q5_1 == 3,
+                         q6_1 == 3,
+                         q7_1 == 3,
+                         q8_1 == 3))
+mid1 <- nrow(responses %>% filter(q3_1 == 4, 
+                         q4_1 == 4,
+                         q5_1 == 4,
+                         q6_1 == 4,
+                         q7_1 == 4,
+                         q8_1 == 4))
+```
+
+The first incomplete was a white male with a college degree (not particurly notable). He marked himself 100% confident in all measures of strength of evidence and had no concern that the expert witness was wrong or exaggerating. `r high` other people did this, while `r low` were 0% confident in everything. He stopped answering at the conviction proneness question. The second incomplete marked him/herself perfectly in the middle on all strength of evidence measures and stopped there. Both were assigned to condition 3 while the last was in condition 2. The third incomplete was similar to the second, marking him/herself solidly in the middle on all measures, ending at the first demographic questions (lowkey I'd probably do the same). `r mid0 + mid1` people marked themselves consitently in the middle. This implies a lack of interest/engagement in the questions (or a lack of opinion) - it could be people got the reading comprehension questions correct but don't really care, leading to most answers hovering around the middle. It'd be interesting to followup with the user engagment indicator to see if the results differ.
+
+
+## Conviction Proneness
+
+```{r figure3}
+ggplot(data = responses, aes(y = score, x = factor(q18))) +
+  geom_boxplot() + labs(x = "Conviction Proneness",
+                        y = "Perceived Strength of Evidence",
+                        title = "Perceived Strength of Evidence by Conviction Proneness")
+```
+
+The boxplot looks the same as Figure 3 in the paper, now we move on to see how covariates work with conviction proneness as the response variable
+
+## Group diffs using conviction proneness as response
+
+```{r group_diffs}
+compare_cat <- function(data, x) {
+  pVal <- with(data, chisq.test(factor(q18), factor(x)) )
+  tbl <- with(data, table( factor(q18), factor(x)) )
+  prob_tbl <- with(data, prop.table(table( factor(q18), factor(x))))
+  return(list(pVal, tbl, prob_tbl))
+}
+
+# age
+compare_cat(responses, responses$dumage)
+ggplot(data = responses, aes(y = q18, x = factor(dumage))) +
+  geom_boxplot() + labs(x = "Age Group",
+                        y = "Conviction Proneness",
+                        title = "Conviction Proneness by Age")
+
+# engagement 
+compare_cat(responses, responses$engaged)
+
+# gender, q14
+
+# ethnicity, q15
+
+# education, q16
+
+# political views, q17
+responses <- responses %>%
+                  mutate(q17f = factor(q17,
+                                      levels= 1:4,
+                                      labels = c("liberal",
+                                                "somewhat liberal",
+                                                "somewhat conservative",
+                                                "conservative")),
+                         q18f = factor(q18, 
+                                      levels= 1:5,
+                                      labels = c("Strongly Agree", 
+                                                 "Agree", 
+                                                 "Neutral", 
+                                                 "Disagree",
+                                                 "Strongly Disagree")),
+                        q19f = factor(q19,
+                                     levels= 1:5,
+                                     labels = c("Several times / week",
+                                                "Once a week",
+                                                "Once a month",
+                                                "Once every few months",
+                                                "Rarely/never")),
+                         q20f = factor(q20, 
+                                      levels= 1:2,
+                                      labels = c("Yes", "No"))
+                        )
+
+to.plot1 <- prop.table(with(responses, table(q18f, q17f)), margin=2)
+ggplot(data=data.frame(to.plot1), aes(x=q18f, fill=q17f, y=Freq)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Conviction Proneness", y = "Percentage",
+       title = "Conviction Proneness by Political Views",
+       fill = "Political Views") 
+
+#CSI
+to.plot2 <- prop.table(with(responses, table(q18f, q19f)), margin=2)
+ggplot(data=data.frame(to.plot2), aes(x=q18f, fill=q19f, y=Freq)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Conviction Proneness", y = "Percentage",
+       title = "Conviction Proneness by CSI Frequency",
+       fill = "CSI Frequency")
+
+#jury experience
+to.plot3 <- prop.table(with(responses, table(q18f, q20f)), margin=2)
+ggplot(data=data.frame(to.plot3), aes(x=q18f, fill=q20f, y=Freq)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Conviction Proneness", y = "Percentage",
+       title = "Conviction Proneness by Jury Experience",
+       fill = "Jury Experience")
+```
+
+The chi-square tests showed that political view, CSI frequency and jury experience all have significant group differences (p-values<0.05).
+
+## Modelling with conviction proneness as response
+
+```{r cpModel, eval = FALSE}
+require(MASS)
+#require(Hmisc)
+#require(reshape2)
+responses <- responses %>%
+                  mutate(political = factor(q17,
+                                      levels= 4:1,
+                                      labels = rev(c("liberal",
+                                                      "somewhat liberal",
+                                                      "somewhat conservative",
+                                                      "conservative"))),
+                         cp = factor(q18, 
+                                      levels= 5:1,
+                                      labels = rev(c("Strongly Agree", 
+                                                     "Agree", 
+                                                     "Neutral", 
+                                                     "Disagree",
+                                                     "Strongly Disagree"))),
+                        csi = factor(q19,
+                                     levels= 5:1,
+                                     labels = rev(c("Several times / week",
+                                                    "Once a week",
+                                                    "Once a month",
+                                                    "Once every few months",
+                                                    "Rarely/never"))),
+                        jury = factor(q20, 
+                                      levels= 2:1,
+                                      labels = c("No", "Yes")),
+                        agef = factor(dumage,
+                                      levels= 1:7,
+                                      labels = c("<20",
+                                                "20-39",
+                                                "30-39",
+                                                "40-49",
+                                                "50-59",
+                                                "60-69",
+                                                "70+")),
+                        conditionf = factor(condition, 
+                                      levels= 1:6),
+                        gender = factor(q14,
+                                     levels= 1:2,
+                                     labels = c("Male",
+                                                "Female")),
+                        ethnicity = factor(q15, 
+                                      levels= 1:6,
+                                      labels = c("Black/AA", 
+                                                 "White",
+                                                 "Hispanic",
+                                                 "Native American",
+                                                 "Asian",
+                                                 "Other")),
+                        education = factor(q16,
+                                           levels=1:6,
+                                           labels = c("Below High School",
+                                                      "High School",
+                                                      "Some college",
+                                                      "College",
+                                                      "Some graduate",
+                                                      "Graduate")),
+                        lawExp = factor(q21,
+                                        levels = c(2, 1),
+                                        labels = c("No","Yes")),
+                        engagedf = factor(ifelse(is.na(engaged),
+                                                 "NA",
+                                                 ifelse(engaged, "True", "False")),
+                                          levels = c("NA", "False", "True"))
+                        
+                        )
+
+#full model
+full <- polr(cp ~ agef + certainty + conditionf + gender + ethnicity + 
+                    education + political + csi + jury + lawExp + engagedf,
+             data = responses, Hess=TRUE)
+
+#model1 -- also final model
+m1 <- stepAIC(full)
+
+tbl1 <- coef(summary(m1))
+p <- pnorm(abs(tbl1[, "t value"]), lower.tail = FALSE) * 2
+tbl1 <- cbind(tbl1, "p value" = p)
+tbl1 #all coeffs with p-values
+
+#consider interactions?
+m3 <- stepAIC(full, ~.^2)
+m2 <- stepAIC(m1, ~.^2)
+
+anova(m1, m2, m3)
+anova(m1,m3)
+
+AIC(m1,m2,m3)
+BIC(m1,m2,m3)
+
+#cumulative probability baseline
+exp(m1$zeta) / (1 + exp(m1$zeta))
+
+
+                
+```
+
+Model 1 turns out to be the best model and shows that only political views, law experience, jury experience, user engagement and CSI watching frequency are significant predictors with no interactions. 
+
+The code below shows the cutoff points of the probabilities of being in each level of the response (for baseline criterion) as well as how each predictor is changing the cutoff points. Political views and CSI watching frequency seem to be the strongest predictors.
+
+** cumulative probability plots **
+
+```{r, eval = FALSE}
+m1 <- polr(cp ~ political + csi + jury + lawExp + engagedf, data = responses)
+logistic <- function(x) {1 / (1 + exp(-x))}
+
+log_data <- data.frame(x = seq(-4, 4, 0.1),
+                       y = plogis(seq(-4, 4, 0.1)))
+
+cutoffs <- data.frame(intercept = m1$zeta)
+
+cp_plot <- ggplot(log_data, aes(x = x, y = y)) + 
+                    geom_line(size = 1) + 
+                    labs(x = "Category cutoffs",
+                         y = "Probability",
+                         title = "Cumulative Probability Plot") + 
+                    scale_y_continuous(limits = c(-0.1, 1)) + 
+                    geom_hline(yintercept = 0) + 
+                    geom_text(data = data.frame(x = c(-4, -2, 0, 2, 4)),
+                              aes(x = x, label = x), y = -0.03) +
+                    geom_text(data = data.frame(x = c(-3.5, -1.8, -0.2, 1.2, 3)),
+                              aes(x = x), y = -0.11, label = levels(responses$cp), size = 6) +
+                    theme_bw() + 
+                    theme(text = element_text(size = 18),
+                                 plot.title = element_text(face = "bold", hjust = 0.5),
+                           panel.background = element_rect(colour = NA),
+                           plot.background = element_rect(colour = NA),
+                           panel.border = element_rect(colour = NA),
+                           axis.title.y = element_text(angle=90,vjust =2),
+                           axis.title.x = element_text(vjust = -0.2),
+                           axis.text.x = element_blank(),
+                           axis.line.y = element_line(colour="black"),
+                           axis.ticks.x = element_blank(),
+                           panel.grid.major = element_line(colour="#f0f0f0"),
+                           panel.grid.minor = element_blank()
+                          ) + 
+                    geom_segment(data = cutoffs, aes(x = intercept, xend = intercept, y = 0, yend = logistic(intercept)),
+                  color = "#f0b700", size = 2, linetype = "dashed")
+
+# intercepts
+cp_plot + geom_text(data = cutoffs, aes(x = intercept - 0.1,
+                                        y = logistic(intercept) + 0.05,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700") 
+
+# political view
+cp_plot + 
+  geom_segment(data = cutoffs, aes(x = intercept - m1$coefficients['politicalliberal'],
+               xend = intercept - m1$coefficients['politicalliberal'], 
+               y = 0, yend = logistic(m1$zeta - m1$coefficients['politicalliberal'])),
+             color = "#cc002b", size = 2, linetype = "dashed")+ 
+  geom_text(data = cutoffs, aes(x = intercept - m1$coefficients['politicalliberal'] - 0.1,
+                                y = logistic(intercept- m1$coefficients['politicalliberal']) + 0.05,
+                                label = format(round(logistic(intercept - 
+                                               m1$coefficients['politicalliberal']), 2), nsmall = 2)),
+            size = 6, color = "#cc002b") +
+   geom_text(data = cutoffs, aes(x = intercept - 0.1,
+                                        y = logistic(intercept) + 0.05,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700") 
+
+
+# csi
+cp_plot + 
+  geom_segment(data = cutoffs, aes(x = intercept - m1$coefficients['csiSeveral times / week'],
+               xend = intercept - m1$coefficients['csiSeveral times / week'], 
+               y = 0, yend = logistic(m1$zeta - m1$coefficients['csiSeveral times / week'])),
+             color = "#cc002b", size = 2, linetype = "dashed")+ 
+  geom_text(data = cutoffs, aes(x = intercept - m1$coefficients['csiSeveral times / week'] - 0.1,
+                                y = logistic(intercept - 
+                                               m1$coefficients['csiSeveral times / week']) + 0.05,
+                                label = format(round(logistic(intercept - 
+                                               m1$coefficients['csiSeveral times / week']), 2), 
+                                               nsmall = 2)),
+            size = 6, color = "#cc002b") +
+   geom_text(data = cutoffs, aes(x = intercept - 0.1,
+                                        y = logistic(intercept) + 0.05,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700") 
+
+# law experience
+cp_plot + 
+  geom_segment(data = cutoffs, aes(x = intercept - m1$coefficients['lawExpYes'],
+               xend = intercept - m1$coefficients['lawExpYes'], 
+               y = 0, yend = logistic(m1$zeta - m1$coefficients['lawExpYes'])),
+             color = "#cc002b", size = 2, linetype = "dashed") + 
+  geom_text(data = cutoffs, aes(x = intercept - m1$coefficients['lawExpYes'] - 0.1,
+                                y = logistic(intercept- m1$coefficients['lawExpYes']) + 0.05,
+                                label = format(round(logistic(intercept - 
+                                               m1$coefficients['lawExpYes']), 2), nsmall = 2)),
+            size = 6, color = "#cc002b") +
+  geom_text(data = cutoffs, aes(x = intercept - 0.15,
+                                        y = logistic(intercept) + 0.03,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700")
+
+#jury experience
+cp_plot + 
+  geom_segment(data = cutoffs, aes(x = intercept - m1$coefficients['juryYes'],
+               xend = intercept - m1$coefficients['juryYes'], 
+               y = 0, yend = logistic(m1$zeta - m1$coefficients['juryYes'])),
+             color = "#cc002b", size = 2, linetype = "dashed") + 
+  geom_text(data = cutoffs, aes(x = intercept - m1$coefficients['juryYes'] - 0.1,
+                                y = logistic(intercept- m1$coefficients['juryYes']) + 0.05,
+                                label = format(round(logistic(intercept - 
+                                               m1$coefficients['juryYes']), 2), nsmall = 2)),
+            size = 6, color = "#cc002b") +
+  geom_text(data = cutoffs, aes(x = intercept - 0.15,
+                                        y = logistic(intercept) + 0.03,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700")
+
+# engagement
+cp_plot + 
+  geom_segment(data = cutoffs, aes(x = intercept - m1$coefficients['engagedfTrue'],
+               xend = intercept - m1$coefficients['engagedfTrue'], 
+               y = 0, yend = logistic(m1$zeta - m1$coefficients['engagedfTrue'])),
+             color = "#cc002b", size = 2, linetype = "dashed") + 
+  geom_text(data = cutoffs, aes(x = intercept - m1$coefficients['engagedfTrue'] - 0.1,
+                                y = logistic(intercept- m1$coefficients['engagedfTrue']) + 0.05,
+                                label = format(round(logistic(intercept - 
+                                               m1$coefficients['engagedfTrue']), 2), nsmall = 2)),
+            size = 6, color = "#cc002b") +
+  geom_text(data = cutoffs, aes(x = intercept - 0.1,
+                                        y = logistic(intercept) + 0.05,
+                                        label = round(logistic(intercept) + 0.1, 2)),
+                    size = 6, color = "#f0b700")
+```
+
+Checking the proportional odds assumption
+
+```{r}
+sf <- function(y) {
+  c('Y>=1' = qlogis(mean(y >= 1)),
+    'Y>=2' = qlogis(mean(y >= 2)),
+    'Y>=3' = qlogis(mean(y >= 3)),
+    'Y>=4' = qlogis(mean(y >= 4)),
+    'Y>=5' = qlogis(mean(y >= 5)))
+}
+s <- with(responses,
+           summary(as.numeric(cp) ~ political + csi + jury + lawExp + engagedf, fun = sf))
+
+plot(s, which=1:3, pch=1:3, xlab='logit', main=' ', xlim=range(s[,3:4]))
+
+```
+
+**Including those answered wrongly on RC questions**
+
+```{r noRC}
+new_eligible <- surveys %>% filter(qs1 == 1,    # U.S. citizenship
+                                   qs2 == 2,    # No felony record
+                                  !is.na(qs3) # Entered an age
+                                  )
+
+knitr::kable(summary(factor(new_eligible$status)),
+             col.names = c("count"))
+
+```
+
+When ignoring correctness of the two RC questions, we still get the same 600 eligible participants with complete responses because those who answered RC questions wrong had NA as response for all following questions.
+
+## User engagement
+
+```{r engagement}
+head(surveys %>% filter(engaged) %>% dplyr::select(q22))
+head(surveys %>% filter(!engaged) %>% dplyr::select(q22))
+
+summary(responses$engaged, exclude = FALSE)
+
+ggplot(data = responses, aes(x = score)) + 
+  geom_density(aes(fill = engaged, color = engaged), alpha = 0.2) + 
+  labs(x = "Strength of Evidence Score",
+       title = "Distribution of Aggregate Score by Engagement",
+       fill = "Engaged?",
+       color = "Engaged?")
+
+test_distribution <- function(group1, group2, variable) {
+  ks.test(group1 %>% pull(variable),
+          group2 %>% pull(variable))
+}
+
+# engaged vs disengaged
+test_distribution(responses %>% filter(engaged),
+                  responses %>% filter(!engaged),
+                  "score")
+# engaged vs na
+test_distribution(responses %>% filter(engaged),
+                  responses %>% filter(is.na(engaged)),
+                  "score")
+
+# engaged vs others
+test_distribution(responses %>% filter(engaged),
+                  responses[!responses$engaged, ],
+                  "score")
+
+# na vs others
+test_distribution(responses %>% filter(is.na(engaged)),
+                  responses %>% filter(!is.na(engaged)),
+                  "score")
+
+
+ggplot(data = responses, aes(x = q18)) + 
+  geom_density(aes(fill = engaged, color = engaged), alpha = 0.2) + 
+  labs(x = "Conviction Proneness",
+       title = "Distribution of Conviction Proneness by Engagement",
+       fill = "Engaged?",
+       color = "Engaged?")
+
+# engaged vs others
+test_distribution(responses %>% filter(engaged),
+                  responses[!responses$engaged, ],
+                  "q18")
+
+# engaged by condition
+chisq.test(ifelse(is.na(responses$engaged),
+                  "NA",
+                  as.character(responses$engaged)),
+           responses$condition)
+
+# engagement as string length
+ggplot(data = responses, aes(x = as.factor(q18), y = engagement)) + 
+  geom_boxplot() + 
+  scale_y_continuous(limits = c(0, 75))
+
+ggplot(data = responses, aes(x = log(engagement + 1), y = score)) +
+  geom_point()
+
+```
+
+## Bayesian hypothesis testing
+
+```{r}
+# one-sample t-test
+bf <- ttestBF(x = incomplete$score, mu = mean(responses$score))
+# 1/bf
+chains <- posterior(bf, iterations = 10000)
+summary(chains)
+
+# two-sample t-test
+bf2 <- ttestBF(x = incomplete$score, y = responses$score)
+chains2 <- posterior(bf2, iterations = 10000)
+plot(chains2[,1:2])
+
+
+############################
+# Trying to do it manually #
+############################
+
+## H0     
+H0 <- prod(incomplete[['score']] %>% dnorm(mean = mean(responses$score),
+                                           sd = sd(responses$score)))
+
+## H1
+cauchy_prior <- function(p) {
+      dcauchy(p, location = mean(responses$score),
+                 scale = sqrt(2)/2)
+}
+
+likelihood <- function(p) {
+      sapply(p, FUN = function(x) 
+              prod(incomplete[['score']] %>% 
+                          dnorm(mean = x,
+                          sd = sd(responses$score))))
+}
+
+# technically needs a normalization constant
+# but for the Cauchy it's pretty close
+H11 <- integrate(function(p) cauchy_prior(p) * likelihood(p),
+                lower = 1, upper = 7)[[1]]
+
+# Plus we're interested in the uniform distribution
+H1 <- integrate(function(p) likelihood(p),
+                lower = 1, upper = 7)[[1]]
+```
+
+
